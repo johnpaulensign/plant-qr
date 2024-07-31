@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>PlantQR</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .text-field {
+      font-size: 96px;
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .scientific-name {
+      font-size: 48px;
+      font-style: italic;
+    }
+
+    th {
+      font-size: 30px;
+    }
+
+    td {
+      padding: 10px;
+      font-size: 15px;
+
+      /* border: 1px solid black; */
+    }
+  </style>
+</head>
+
+<body>
+  <!-- <div class="text-field" id="plant-id"></div> -->
+  <div>
+    <div class="text-field" id="plant-name">Select a plant</div>
+    <!-- <div class="text-field scientific-name" id="plant-scientific-name"></div> -->
+    <table id="date-table" hidden>
+      <tr>
+        <th>Watering Date</th>
+        <th>Fertilizing Date</th>
+        <th>Pest Treatment Date</th>
+      </tr>
+      <tr>
+        <td id="watering-date"></td>
+        <td id="fertilizing-date"></td>
+        <td id="pest-treatment-date"></td>
+      </tr>
+    </table>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="plant.js"></script>
+
+  <script>
+    // function that takes a date and returns a string in the format of yyyy-mm-dd hh:mm:ss
+    function formatDate(date) {
+      return `${date.getFullYear()}-${date.getMonth() + 1 < 10 ? "0" : ""}${date.getMonth() + 1}-${date.getDate() < 10 ? "0" : ""}${date.getDate()} ${date.getHours() < 10 ? "0" : ""}${date.getHours()}:${date.getMinutes() < 10 ? "0" : ""}${date.getMinutes()}`;
+    }
+  </script>
+
+  <script>
+    // Connect to the server using Socket.IO
+    const socket = io();
+
+    // Create array of plants
+    const plants = { "Select a plant": new Plant("Select a plant") };
+
+    // updatePlantFields("Select a plant");
+
+    // Listen for plant data updates from the server
+    socket.on('plantAction', (data) => {
+
+      const plantId = data["plantId"];
+      const plantAction = data["plantAction"];
+
+      // Update the text field with the received plant data
+      // document.getElementById('plant-id').textContent = data;
+
+      // Create a new plant object if it doesn't exist
+      if (!plants[plantId]) {
+        plants[plantId] = new Plant(plantId);
+      }
+
+      // Perform the plant action
+      switch (plantAction) {
+        case "water":
+          plants[plantId].waterPlant();
+          break;
+        case "fertilize":
+          plants[plantId].fertilizePlant();
+          break;
+        case "pest":
+          plants[plantId].pestTreatment();
+          break;
+        // default:
+        // console.log("Invalid plant action");
+      }
+
+      // Update the plant object with the received plant data
+      plants[plantId].id = plantId;
+      plants[plantId].name = plantId;
+      plants[plantId].scientificName = plantId;
+
+      // Update the text field with the plant name
+      updatePlantFields(plantId);
+
+      // Show the table
+      document.getElementById('date-table').removeAttribute('hidden');
+
+    });
+
+    function updatePlantFields(plantId) {
+      document.getElementById('plant-name').textContent = plants[plantId].name;
+
+      // Update the text field with the plant scientific name
+      // document.getElementById('plant-scientific-name').textContent = plants[plantId].scientificName;
+
+      // Update the text field's HTML with the watering dates, putting each date from the array in its own paragraph tag
+      document.getElementById('watering-date').innerHTML = plants[plantId].maintenanceTasks.lastWatered.map(date => `<p>${formatDate(date)}</p>`).join('');
+
+      // Update the text field's HTML with the fertilizing dates, putting each date from the array in its own paragraph tag
+      document.getElementById('fertilizing-date').innerHTML = plants[plantId].maintenanceTasks.lastFertilized.map(date => `<p>${formatDate(date)}</p>`).join('');
+
+      // Update the text field's HTML with the pest treatment dates, putting each date from the array in its own paragraph tag
+      document.getElementById('pest-treatment-date').innerHTML = plants[plantId].maintenanceTasks.lastPestTreatment.map(date => `<p>${formatDate(date)}</p>`).join('');
+
+    }
+    // // Usage example
+    // const myPlant = new Plant("Snake Plant", "Sansevieria trifasciata");
+    // myPlant.waterPlant();
+    // myPlant.fertilizePlant();
+    // myPlant.repotPlant();
+
+  </script>
+</body>
+
+</html>
